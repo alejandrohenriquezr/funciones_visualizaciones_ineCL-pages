@@ -1,0 +1,1031 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Manual visualizaciones_ineCL</title><style>body{font-family:Lato,Arial,sans-serif;color:#2B3442;background:#F5F6F8;margin:0;line-height:1.6}
+main{max-width:1060px;padding:30px;margin:auto;background:#fff}h1,h2,h3{color:#092C74;line-height:1.3}
+h1{font-size:28px}h2{font-size:23px}h3{font-size:19px}a{color:#174A8B;overflow-wrap:anywhere}
+section{padding:20px 0;border-top:1px solid #E3E7ED}pre{background:#F2F4F7;padding:15px;overflow:auto;font-size:13px}
+code{font-size:13px}table{border-collapse:collapse;width:100%;display:block;overflow:auto;font-size:14px}
+th,td{padding:8px 12px;border:1px solid #E3E7ED;text-align:left}th{background:#EAF0F8;color:#092C74}
+@media(max-width:600px){main{padding:16px}h1{font-size:24px}}@media print{body{background:white}main{padding:0}pre{white-space:pre-wrap}section{break-before:page}a{color:#092C74}}</style></head><body><main><h1>Manual de visualizaciones_ineCL</h1><p>Versión 0.1.0. Paquetes R y Python para construir gráficos, mapas, tablas e indicadores estadísticos.<br><strong>Autoría:</strong> Alejandro Henríquez Rodríguez. <strong>Titularidad:</strong> Instituto Nacional de Estadísticas de Chile (INE).<br>El código fuente es de uso interno por funcionarios del INE, conforme a la licencia incluida. Esta página es material público de consulta y no concede autorización para reutilizar los paquetes ni sus recursos de diseño. No se publican en CRAN ni PyPI.</p>
+<p>El estilo procede del HTML entregado: Lato, azul <code>#092C74</code>, rojo <code>#E31D1A</code>,
+fondo blanco, bordes grises y separadores numericos chilenos: <code>1.234.567,89</code>.
+La arquitectura editorial sigue el manual adjunto. Son herramientas tecnicas;
+no constituyen una aprobacion institucional del diseno o de una publicacion.</p>
+<h2>Instalacion rapida</h2>
+<p>Desde la carpeta descomprimida:</p>
+<pre><code class="language-bash"># Instala codigo local y los extras de mapas y exportacion.
+python -m pip install &quot;./python[mapas,exportacion]&quot;
+</code></pre>
+<pre><code class="language-r"># Instala dependencias de CRAN y luego el paquete de esta carpeta.
+install.packages(c(&quot;ggplot2&quot;, &quot;plotly&quot;, &quot;htmlwidgets&quot;, &quot;htmltools&quot;,
+                   &quot;sf&quot;, &quot;jsonlite&quot;, &quot;rlang&quot;, &quot;ragg&quot;, &quot;svglite&quot;))
+install.packages(&quot;R/visualizacionesineCL&quot;, repos = NULL, type = &quot;source&quot;)
+</code></pre>
+<p>Los requisitos de Lato, Chrome, Pandoc, Windows y Linux se explican en
+<a href="#seccion-2">INSTALACION</a>.</p>
+<h2>Primer grafico en Python</h2>
+<pre><code class="language-python"># Valores sin formatear; los separadores se aplican solo en la salida.
+import pandas as pd
+import visualizaciones_inecl as ine
+datos = pd.DataFrame({&quot;anio&quot;: [2024, 2025], &quot;cantidad&quot;: [12500, 13400]})
+meta = ine.Metadatos(&quot;Cantidad ficticia, segun anio&quot;, &quot;Datos ficticios&quot;, ficticios=True)
+v = ine.grafico_lineas(datos, &quot;anio&quot;, &quot;cantidad&quot;, meta)
+v.guardar_html(&quot;salidas/lineas.html&quot;)
+v.exportar(&quot;salidas/lineas.png&quot;)
+v.guardar_csv(&quot;salidas/lineas.csv&quot;)
+</code></pre>
+<h2>Primer grafico en R</h2>
+<pre><code class="language-r"># Misma estructura de columnas y misma funcion grafica.
+library(visualizacionesineCL)
+datos &lt;- data.frame(anio = c(2024,2025), cantidad = c(12500,13400))
+meta &lt;- metadatos_ine(&quot;Cantidad ficticia, segun anio&quot;, &quot;Datos ficticios&quot;, ficticios = TRUE)
+v &lt;- grafico_lineas(datos, &quot;anio&quot;, &quot;cantidad&quot;, meta)
+exportar_html(v, &quot;salidas/lineas.html&quot;)
+exportar_imagen(v, &quot;salidas/lineas.png&quot;)
+exportar_csv(v, &quot;salidas/lineas.csv&quot;)
+</code></pre>
+<h2>Contenido</h2>
+<table>
+<thead>
+<tr>
+<th>Ruta</th>
+<th>Uso</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>python/</code></td>
+<td>Paquete Python instalable, API comentada y pruebas</td>
+</tr>
+<tr>
+<td><code>R/visualizacionesineCL/</code></td>
+<td>Paquete R instalable con ayuda local y pruebas</td>
+</tr>
+<tr>
+<td><code>docs/</code></td>
+<td>Manual del analista, API, estilo, cartografia y mantenimiento</td>
+</tr>
+<tr>
+<td><code>ejemplos/</code></td>
+<td>Catalogos ejecutables en ambos lenguajes, CSV ficticios y Quarto</td>
+</tr>
+<tr>
+<td><code>cartografia/</code></td>
+<td>Capas DPA 2023 simplificadas y auditoria de procedencia</td>
+</tr>
+<tr>
+<td><code>GALERIA.html</code></td>
+<td>Todos los ejemplos Python, sin dependencia de CDN</td>
+</tr>
+<tr>
+<td><code>resultados/</code></td>
+<td>Ejemplos HTML y exportaciones generadas</td>
+</tr>
+<tr>
+<td><code>scripts/</code></td>
+<td>Preparacion reproducible de cartografia y verificaciones</td>
+</tr>
+<tr>
+<td><code>distribucion/</code></td>
+<td>Paquetes construidos y reporte de verificacion</td>
+</tr>
+</tbody>
+</table>
+<p>Referencias: <a href="#seccion-5">FUENTES</a>. Reglas y limitaciones de esta version:
+<a href="#seccion-4">MANUAL_ANALISTAS</a> y <a href="#seccion-6">VERIFICACION</a>.</p></section><section id="seccion-1"><h1>Referencia de funciones</h1>
+<p>Los nombres de funciones graficas son iguales en R y Python. Columnas se pasan
+como cadenas. <code>metadatos</code> es <code>Metadatos</code> en Python y <code>metadatos_ine</code> en R.
+Los parametros que no se muestran son opcionales; consultar docstrings o <code>help</code>
+para la firma completa y sus validaciones.</p>
+<table>
+<thead>
+<tr>
+<th>Funcion</th>
+<th>Argumentos principales en orden</th>
+<th>Opciones</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>grafico_lineas</code></td>
+<td>datos, x, y, metadatos</td>
+<td>serie, inferior, superior, na, cero, etiquetas</td>
+</tr>
+<tr>
+<td><code>grafico_barras</code></td>
+<td>datos, categoria, valor, metadatos</td>
+<td>serie, horizontal, apiladas, porcentaje, na, inferior, superior</td>
+</tr>
+<tr>
+<td><code>grafico_barras_apiladas</code></td>
+<td>datos, categoria, valor, serie, metadatos</td>
+<td>porcentaje, horizontal, na</td>
+</tr>
+<tr>
+<td><code>grafico_histograma</code></td>
+<td>datos, variable, metadatos</td>
+<td>bins: entero o cortes, na</td>
+</tr>
+<tr>
+<td><code>grafico_torta</code></td>
+<td>datos, categoria, valor, metadatos</td>
+<td>dona, na, max_categorias</td>
+</tr>
+<tr>
+<td><code>grafico_dona</code></td>
+<td>datos, categoria, valor, metadatos</td>
+<td>na, max_categorias</td>
+</tr>
+<tr>
+<td><code>grafico_piramide</code></td>
+<td>datos, edad, sexo, valor, metadatos, izquierda, derecha</td>
+<td>orden, porcentaje</td>
+</tr>
+<tr>
+<td><code>grafico_piramide_composicion</code></td>
+<td>datos, categoria, valor, metadatos</td>
+<td>Python: tema</td>
+</tr>
+<tr>
+<td><code>grafico_dispersion</code></td>
+<td>datos, x, y, metadatos</td>
+<td>serie, na</td>
+</tr>
+<tr>
+<td><code>grafico_caja</code></td>
+<td>datos, categoria, valor, metadatos</td>
+<td>na</td>
+</tr>
+<tr>
+<td><code>grafico_paneles</code></td>
+<td>datos, x, y, panel, metadatos</td>
+<td>serie, columnas</td>
+</tr>
+<tr>
+<td><code>grafico_areas</code></td>
+<td>datos, x, y, metadatos</td>
+<td>serie</td>
+</tr>
+<tr>
+<td><code>grafico_mapa_calor</code></td>
+<td>datos, x, y, valor, metadatos</td>
+<td>Python: tema</td>
+</tr>
+<tr>
+<td><code>grafico_puntos</code></td>
+<td>datos, categoria, valor, metadatos</td>
+<td>inferior, superior, referencia</td>
+</tr>
+<tr>
+<td><code>tabla_estadistica</code></td>
+<td>datos, metadatos</td>
+<td>decimales</td>
+</tr>
+<tr>
+<td><code>indicador_kpi</code></td>
+<td>valor, etiqueta, metadatos</td>
+<td>decimales, sufijo</td>
+</tr>
+<tr>
+<td><code>mapa_coropletico</code></td>
+<td>datos, cartografia, codigo, valor, metadatos</td>
+<td>nivel, region, limites, vista, sin_correspondencia</td>
+</tr>
+<tr>
+<td><code>mapa_regiones</code></td>
+<td>datos, cartografia, codigo, valor, metadatos</td>
+<td>limites, vista</td>
+</tr>
+<tr>
+<td><code>mapa_provincias</code></td>
+<td>datos, cartografia, codigo, valor, metadatos</td>
+<td>region, limites, vista</td>
+</tr>
+<tr>
+<td><code>mapa_comunas</code></td>
+<td>datos, cartografia, codigo, valor, metadatos</td>
+<td>region, limites, vista</td>
+</tr>
+<tr>
+<td><code>cargar_cartografia</code></td>
+<td>ruta, nivel, codigo, nombre</td>
+<td>region, capa, simplificar_m</td>
+</tr>
+<tr>
+<td><code>descargar_cartografia</code></td>
+<td>destino</td>
+<td>url, reemplazar</td>
+</tr>
+<tr>
+<td><code>normalizar_codigo</code></td>
+<td>valores</td>
+<td>nivel</td>
+</tr>
+<tr>
+<td><code>formato_numero</code></td>
+<td>valor</td>
+<td>decimales, sufijo</td>
+</tr>
+<tr>
+<td><code>tabla_html</code></td>
+<td>datos</td>
+<td>decimales, caption</td>
+</tr>
+</tbody>
+</table>
+<h2>Diferencias de salida</h2>
+<table>
+<thead>
+<tr>
+<th>Accion</th>
+<th>Python</th>
+<th>R</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Crear metadatos</td>
+<td><code>ine.Metadatos(titulo, fuente, ...)</code></td>
+<td><code>metadatos_ine(titulo, fuente, ...)</code></td>
+</tr>
+<tr>
+<td>Editar figura interactiva</td>
+<td><code>v.figura</code></td>
+<td><code>v$interactiva</code></td>
+</tr>
+<tr>
+<td>Editar figura estatica</td>
+<td>Exporta copia de <code>v.figura</code></td>
+<td><code>v$estatica</code></td>
+</tr>
+<tr>
+<td>HTML completo</td>
+<td><code>v.guardar_html(ruta)</code></td>
+<td><code>exportar_html(v, ruta)</code></td>
+</tr>
+<tr>
+<td>Fragmento HTML</td>
+<td><code>v.html(incluir_js=False)</code></td>
+<td>Widget en Quarto + <code>tabla_html</code></td>
+</tr>
+<tr>
+<td>Imagen</td>
+<td><code>v.exportar(ruta, ancho=1100, alto=700, escala=2, motor="matplotlib")</code></td>
+<td><code>exportar_imagen(v, ruta, ancho=10, alto=6.5, dpi=200)</code></td>
+</tr>
+<tr>
+<td>CSV equivalente</td>
+<td><code>v.guardar_csv(ruta)</code></td>
+<td><code>exportar_csv(v, ruta)</code></td>
+</tr>
+<tr>
+<td>Ver datos</td>
+<td><code>v.datos</code></td>
+<td><code>v$datos</code></td>
+</tr>
+<tr>
+<td>Tema</td>
+<td><code>TemaINE(...)</code> y <code>tema=</code></td>
+<td><code>tema_ine(fuente, tamano)</code> para ggplot2</td>
+</tr>
+</tbody>
+</table>
+<p>Python dimensiones en pixeles logicos; R en pulgadas. Las APIs son equivalentes
+en proposito y contratos, no intercambiables literalmente entre lenguajes.
+Tasas/porcentajes se entregan en unidades visibles, y los cortes del histograma
+incluyen el extremo superior del ultimo intervalo. Si se quieren intervalos
+exactamente iguales entre lenguajes, entregar el mismo vector de cortes.</p>
+<p>La tabla equivalente de histogramas es de intervalos y frecuencias; la de
+mapas contiene la union territorial, incluyendo ausentes. Las tablas de
+apiladas porcentuales contienen los valores transformados a porcentaje, no
+las cantidades originales. Conservar el archivo de entrada para trazabilidad.</p>
+<h2>Ejemplo de mapas nacionales y regionales</h2>
+<pre><code class="language-python"># Campos reales de los GeoJSON incluidos; valores FICTICIOS para demostracion.
+import pandas as pd
+import visualizaciones_inecl as ine
+g = ine.cargar_cartografia(&quot;cartografia/comuna_dpa2023_referencia.geojson&quot;,
+                           &quot;comuna&quot;, &quot;codigo&quot;, &quot;nombre&quot;, &quot;codigo_region&quot;)
+datos = pd.read_csv(&quot;ejemplos/datos/comuna_FICTICIOS.csv&quot;, sep=&quot;;&quot;, decimal=&quot;,&quot;, dtype={&quot;codigo&quot;: str})
+m = ine.Metadatos(&quot;Indicador ficticio por comuna&quot;, &quot;Datos ficticios; SUBDERE / IDE Chile, DPA 2023&quot;, ficticios=True)
+pais = ine.mapa_comunas(datos, g, &quot;codigo&quot;, &quot;indicador&quot;, m, limites=(5,35))
+rm = ine.mapa_comunas(datos, g, &quot;codigo&quot;, &quot;indicador&quot;, m, region=&quot;13&quot;, limites=(5,35))
+pais.guardar_html(&quot;salidas/comunas_pais.html&quot;)
+rm.guardar_html(&quot;salidas/comunas_rm.html&quot;)
+</code></pre>
+<pre><code class="language-r"># Los codigos se normalizan; no se unen por nombres de comunas.
+g &lt;- cargar_cartografia(&quot;cartografia/comuna_dpa2023_referencia.geojson&quot;,
+                        &quot;comuna&quot;, &quot;codigo&quot;, &quot;nombre&quot;, &quot;codigo_region&quot;)
+datos &lt;- read.csv2(&quot;ejemplos/datos/comuna_FICTICIOS.csv&quot;, fileEncoding = &quot;UTF-8-BOM&quot;)
+m &lt;- metadatos_ine(&quot;Indicador ficticio por comuna&quot;, &quot;Datos ficticios; SUBDERE / IDE Chile, DPA 2023&quot;, ficticios = TRUE)
+pais &lt;- mapa_comunas(datos, g, &quot;codigo&quot;, &quot;indicador&quot;, m, limites = c(5,35))
+rm &lt;- mapa_comunas(datos, g, &quot;codigo&quot;, &quot;indicador&quot;, m, region = &quot;13&quot;, limites = c(5,35))
+exportar_html(pais, &quot;salidas/comunas_pais.html&quot;)
+exportar_html(rm, &quot;salidas/comunas_rm.html&quot;)
+</code></pre></section><section id="seccion-2"><h1>Instalacion y entorno</h1>
+<h2>Python</h2>
+<p>Python 3.10 o superior. Se recomienda un entorno por proyecto; no sobrescribir
+el entorno utilizado por otras operaciones estadisticas.</p>
+<pre><code class="language-powershell"># Windows: activar entorno y usar pip del mismo interprete.
+py -m venv .venv
+.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install &quot;.\python[mapas,exportacion,desarrollo]&quot;
+</code></pre>
+<pre><code class="language-bash"># Linux/macOS: activar entorno e instalar desde la carpeta entregada.
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install &quot;./python[mapas,exportacion,desarrollo]&quot;
+</code></pre>
+<p>El nucleo usa pandas, numpy, Plotly y Matplotlib; mapas agrega GeoPandas y el
+extra exportacion agrega Kaleido para el motor Plotly opcional. El extra
+desarrollo instala herramientas de prueba, documentacion y empaquetado.
+Las dependencias transitivas se resuelven mediante pip. No se necesita cuenta
+de Plotly, servidor de mapas, token comercial ni conexion para usar las capas
+GeoJSON incluidas o los HTML autocontenidos.</p>
+<p>PNG, SVG y PDF usan Matplotlib por defecto y no requieren navegador. Para
+exportar con el mismo motor interactivo, usar <code>v.exportar(ruta, motor="plotly")</code>;
+esa opcion usa Kaleido y necesita Chrome o Chromium. Si no esta instalado:</p>
+<pre><code class="language-python"># Descargar Chrome solo si la politica del equipo lo permite.
+import plotly.io as pio
+pio.get_chrome()
+</code></pre>
+<p>Para un Chrome corporativo en ruta distinta, definir <code>BROWSER_PATH</code> antes de
+ejecutar Python. El HTML interactivo no necesita Kaleido ni Chrome instalado en
+el equipo que lo genera; si requiere un navegador para visualizarlo.</p>
+<h2>R</h2>
+<p>R 4.1 o superior. En Windows preferir paquetes binarios de CRAN, especialmente
+<code>sf</code>; compilar desde fuentes puede requerir Rtools. RStudio es opcional.</p>
+<pre><code class="language-r"># Instala las dependencias y el paquete local; no descarga cartografia.
+install.packages(c(&quot;ggplot2&quot;, &quot;plotly&quot;, &quot;htmlwidgets&quot;, &quot;htmltools&quot;,
+  &quot;sf&quot;, &quot;jsonlite&quot;, &quot;rlang&quot;, &quot;ragg&quot;, &quot;svglite&quot;, &quot;testthat&quot;, &quot;roxygen2&quot;))
+install.packages(&quot;R/visualizacionesineCL&quot;, repos = NULL, type = &quot;source&quot;)
+library(visualizacionesineCL)
+packageVersion(&quot;visualizacionesineCL&quot;)
+help(&quot;grafico_lineas&quot;, package = &quot;visualizacionesineCL&quot;)
+</code></pre>
+<p>R produce imagenes con ggplot2; no necesita Chrome. SVG usa svglite; PDF usa
+Cairo. HTML autocontenido con htmlwidgets requiere Pandoc: RStudio/Quarto suelen
+proveerlo, pero comprobar su instalacion. Si no esta disponible, usar
+<code>exportar_html(v, ruta, autocontenido = FALSE)</code> y distribuir tambien la carpeta
+de dependencias creada junto al HTML. No mover solamente el archivo HTML.</p>
+<p>En Linux, <code>sf</code> desde fuente puede requerir GDAL, GEOS, PROJ y udunits2. Instalar
+las dependencias del sistema con los procedimientos del entorno institucional;
+el paquete no instala componentes del sistema automaticamente.</p>
+<h2>Tipografia</h2>
+<p>Instalar Lato en el sistema para que imagenes y navegador coincidan. Python
+resuelve <code>Lato, Arial, sans-serif</code>; R solicita Lato al dispositivo grafico.
+No se incrusta una fuente de Google Fonts por red: evita depender de internet.
+La carpeta <code>recursos/fuentes/</code>, si esta incluida, contiene archivos Lato y su
+licencia procedentes del paquete Ubuntu fonts-lato. Instalar los TTF y revisar
+su licencia antes de redistribuirlos de forma independiente.</p>
+<p>Si Lato no esta disponible, Python usa alternativas; en R la sustitucion o el
+error dependen del dispositivo. Aplicar <code>v$estatica + tema_ine(fuente = "Arial")</code>
+permite exportar temporalmente con otra familia, declarando la desviacion.</p>
+<h2>Ejecutar ejemplos y pruebas</h2>
+<pre><code class="language-bash"># Desde la raiz: datos comunes, HTML y, opcionalmente, todas las imagenes.
+python ejemplos/generar_ejemplos.py --estaticos
+Rscript ejemplos/generar_ejemplos.R
+python -m pytest python/tests -q
+</code></pre>
+<pre><code class="language-r"># Pruebas R desde la raiz del proyecto.
+testthat::test_local(&quot;R/visualizacionesineCL&quot;)
+</code></pre>
+<p>Las versiones realmente usadas en esta entrega se registran en
+<code>distribucion/entorno_python.txt</code> y <code>distribucion/entorno_R.txt</code>, cuando fueron
+verificadas. Los rangos del paquete admiten versiones compatibles; el registro
+describe la ejecucion comprobada, no garantiza entornos futuros.</p></section><section id="seccion-3"><h1>Cartografia de Chile</h1>
+<h2>Fuente adoptada</h2>
+<p>SUBDERE / IDE Chile, Division Politica Administrativa 2023, fecha de publicacion
+29 de septiembre de 2023. Ficha oficial:
+https://geoportal.cl/geoportal/catalog/36391/Divisi%C3%B3n%20Pol%C3%ADtica%20Administrativa%202023</p>
+<p>Descarga oficial:
+https://geoportal.cl/geoportal/catalog/download/912598ad-ac92-35f6-8045-098f214bd9c2</p>
+<p>El conjunto se elaboro con participacion de SUBDERE, IGM, DIFROL e INE. Su ficha
+declara SIRGAS Chile, escala de referencia 1:50.000 y exclusion del Territorio
+Antartico Chileno. Estas propiedades corresponden al origen; las copias
+simplificadas de esta entrega no conservan precision a esa escala.</p>
+<p>La revision de los archivos descargados encontro:</p>
+<table>
+<thead>
+<tr>
+<th>Capa</th>
+<th>Registros</th>
+<th>Campo de codigo</th>
+<th>Campo de nombre</th>
+<th>Region</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>REGIONES_v1.shp</td>
+<td>16</td>
+<td>CUT_REG</td>
+<td>REGION</td>
+<td>Derivada del codigo</td>
+</tr>
+<tr>
+<td>PROVINCIAS_v1.shp</td>
+<td>56</td>
+<td>CUT_PROV</td>
+<td>PROVINCIA</td>
+<td>CUT_REG</td>
+</tr>
+<tr>
+<td>COMUNAS_v1.shp</td>
+<td>345</td>
+<td>CUT_COM</td>
+<td>COMUNA</td>
+<td>CUT_REG</td>
+</tr>
+</tbody>
+</table>
+<p>El CRS del archivo es EPSG:5360. La capa comunal no incluye la comuna Antartica.
+Una provincia llamada Antartica Chilena puede estar presente aunque no este
+el poligono de la comuna Antartica: no confundir nombre de unidad con cobertura
+de todo el territorio que pudiera asociarse a ese nombre.</p>
+<p>No se afirma que DPA 2023 sea la version vigente mas reciente en 2026. Se
+identifico y descargo esta version oficial concreta para una entrega
+reproducible. Cada publicacion debe comprobar concordancia con los codigos,
+periodo estadistico y limites correspondientes a su operacion.</p>
+<h2>Capas incluidas</h2>
+<p><code>*_dpa2023_referencia.geojson</code> preservan unidades y codigos del original,
+reproyectan a EPSG:4326 y simplifican geometria en EPSG:32719 con tolerancia
+maxima de 1.000 metros. El script reduce la tolerancia por unidad hasta que
+el cambio relativo de superficie proyectada queda bajo 0,5%. La tolerancia
+final por codigo se registra en el JSON. La simplificacion conserva la validez
+de cada poligono, pero no
+garantiza topologia compartida entre vecinos. Puede modificar superficies y
+bordes: no usar estas copias para medicion, interseccion analitica, areas ni
+asignacion de puntos a unidades territoriales.</p>
+<p>Una simplificacion inicial uniforme de 1.000 metros produjo cruces tras
+reproyectar en dos geometrias y un cambio de superficie excesivo en comunas
+pequenas. Se reemplazo por la tolerancia adaptativa descrita arriba. Las capas
+finales no requirieron reparaciones y contienen cero geometrias invalidas. El
+script conserva una reparacion explicita como salvaguarda para otros datos y
+registra su uso; la funcion publica de carga rechaza invalidas sin repararlas.</p>
+<p><code>procedencia.json</code> registra checksum del ZIP original, checksums de las capas,
+conteos, errores maximos de superficie proyectada y CRS. Esos errores son una
+auditoria tecnica de la transformacion, no una garantia de precision geodesica.
+El ZIP original de aproximadamente 297 MiB no se incorpora al paquete para
+evitar una entrega innecesariamente grande. Se puede descargar y preparar:</p>
+<pre><code class="language-bash"># Tolerancia de referencia; usar --tolerancia 0 para geometria sin simplificar.
+python scripts/preparar_cartografia.py /ruta/dpa2023.zip --tolerancia 1000
+</code></pre>
+<p>Las funciones tambien aceptan archivos originales SHP/GPKG/GDB/GeoJSON de otra
+version oficial mediante nombres de campos explicitos y CRS declarado. No
+estiman llaves a partir del nombre de un territorio.</p>
+<h2>Cobertura, calidad y procedencia en la publicacion</h2>
+<p>Incluir fuente de los indicadores y fuente/version de la cartografia. Una
+geometria real con un indicador ficticio no es una estadistica oficial.
+Mantener visible la cobertura declarada. Las vistas continentales necesitan
+nota del encuadre; los territorios fuera del encuadre no desaparecen de la
+tabla equivalente. Los mapas completos pueden verse estrechos por la forma
+de Chile y sus islas: se deja el ajuste de encuadre como decision editorial.</p>
+<p>La ficha web consultada menciona una resolucion DIFROL N. 50 de 2019; el
+documento DESCRIPCION_DPA2023_v1.docx incluido en el ZIP menciona N. 87 de 2019.
+Se encontro esta discrepancia en las fuentes, por lo que no se inserta
+automaticamente una leyenda de autorizacion en mapas derivados. El documento
+y la ficha tambien senalan revision de productos derivados. Confirmar la
+leyenda y el procedimiento aplicable con el responsable cartografico antes
+de una circulacion institucional. Esta entrega tecnica no acredita esa
+validacion.</p>
+<h2>Otras fuentes oficiales verificadas</h2>
+<p>INE, Geodatos Abiertos: remite al catalogo Cartografia de Documentos y
+descargas, incluida la base APC 2023 de Censo 2024:
+https://www.ine.gob.cl/herramientas/portal-de-mapas/geodatos-abiertos</p>
+<p>BCN, Mapas vectoriales: ofrece regiones, provincias y comunas; su sitio indica
+estados temporales de 2014, 2017 y diciembre de 2018, uso referencial y
+atribucion a BCN. No se usa como reemplazo silencioso de DPA 2023:
+https://www.bcn.cl/siit/mapas_vectoriales/index_html</p>
+<p>Referencias completas y fechas de consulta: <code>FUENTES.md</code>.</p></section><section id="seccion-4"><h1>Manual del analista</h1>
+<h2>Contrato de datos</h2>
+<p>Las funciones reciben <code>pandas.DataFrame</code> en Python y <code>data.frame</code> en R. Los
+argumentos de columnas son cadenas: <code>"anio"</code>, <code>"valor"</code>, <code>"sexo"</code>. Los nombres
+pueden ser distintos en cada operacion; no se requiere renombrar a un esquema
+universal. No se ejecutan expresiones recibidas como nombres de columnas.</p>
+<p>Los valores deben ser numericos sin formato: <code>1234.5</code>, no <code>"1.234,5"</code>. Fechas
+deben tener tipo fecha o una escala numerica ordenable; las etiquetas de meses
+en texto requieren una fecha subyacente o un factor ordenado. Una tasa 9,6% se
+entrega como <code>9.6</code>, no <code>0.096</code>, salvo conversion explicita anterior.</p>
+<p>Lineas requieren una fila por periodo y serie. Barras requieren una fila por
+categoria y serie. Tortas requieren una fila por componente. Los diagramas de
+caja y dispersion reciben observaciones; histogramas reciben valores
+individuales. Una piramide demografica necesita ambos grupos en cada tramo.
+Paneles requieren una fila por periodo, panel y serie. Mapas requieren una
+fila por codigo territorial. Tablas muestran los registros recibidos.</p>
+<p>Las funciones no calculan estimaciones de encuestas, ponderadores, tasas,
+intervalos de confianza, imputaciones ni reglas de secreto estadistico. Esas
+operaciones deben completarse y validarse antes de visualizar. Cuando haya
+estimaciones de encuestas, entregar los limites calculados con su diseno
+muestral y aclarar nivel de confianza en la nota.</p>
+<p>Duplicados generan error; no se suman silenciosamente. Ausentes generan error
+por defecto en los graficos que exponen <code>na</code>; <code>na="omitir"</code> produce advertencia.
+No se imputa cero. Un mapa conserva en gris las unidades sin indicador y su
+tabla equivalente registra el ausente como <code>Sin dato</code>.</p>
+<h2>Elegir una funcion</h2>
+<table>
+<thead>
+<tr>
+<th>Pregunta</th>
+<th>Funcion</th>
+<th>Precaucion</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Evolucion temporal</td>
+<td><code>grafico_lineas</code></td>
+<td>Intervalos si corresponde; no suaviza curvas</td>
+</tr>
+<tr>
+<td>Distribucion continua</td>
+<td><code>grafico_histograma</code></td>
+<td>Declarar bins/cortes; revisar frecuencia total</td>
+</tr>
+<tr>
+<td>Comparar cantidades</td>
+<td><code>grafico_barras</code></td>
+<td>Escala desde cero; admite negativos con origen visible</td>
+</tr>
+<tr>
+<td>Composicion por categoria</td>
+<td><code>grafico_barras_apiladas</code></td>
+<td>No usar para comparar componentes interiores con precision</td>
+</tr>
+<tr>
+<td>Participaciones en un total</td>
+<td><code>grafico_torta</code>, <code>grafico_dona</code></td>
+<td>Manual aconseja uso restringido; pocas categorias y suma positiva</td>
+</tr>
+<tr>
+<td>Edad y dos grupos</td>
+<td><code>grafico_piramide</code></td>
+<td>Ordenar tramos; magnitudes positivas y escala simetrica</td>
+</tr>
+<tr>
+<td>Composicion ordenada</td>
+<td><code>grafico_piramide_composicion</code></td>
+<td>Barras centradas de alto constante, ancho proporcional</td>
+</tr>
+<tr>
+<td>Relacion de variables</td>
+<td><code>grafico_dispersion</code></td>
+<td>No comunica causalidad</td>
+</tr>
+<tr>
+<td>Distribucion por grupos</td>
+<td><code>grafico_caja</code></td>
+<td>Necesita observaciones, no promedios agregados</td>
+</tr>
+<tr>
+<td>Comparaciones entre zonas</td>
+<td><code>grafico_paneles</code></td>
+<td>Escalas comunes; no combina unidades distintas</td>
+</tr>
+<tr>
+<td>Componentes en el tiempo</td>
+<td><code>grafico_areas</code></td>
+<td>Valores sumables y periodos completos</td>
+</tr>
+<tr>
+<td>Magnitudes en matriz</td>
+<td><code>grafico_mapa_calor</code></td>
+<td>No confundir con mapa geografico</td>
+</tr>
+<tr>
+<td>Tasas por categoria</td>
+<td><code>grafico_puntos</code></td>
+<td>Admite intervalos y referencia nacional</td>
+</tr>
+<tr>
+<td>Distribucion territorial</td>
+<td><code>mapa_regiones</code>, <code>mapa_provincias</code>, <code>mapa_comunas</code></td>
+<td>Preferir tasas comparables si las poblaciones difieren</td>
+</tr>
+<tr>
+<td>Consulta exacta</td>
+<td><code>tabla_estadistica</code></td>
+<td>HTML semantico con desplazamiento horizontal</td>
+</tr>
+<tr>
+<td>Indicador destacado</td>
+<td><code>indicador_kpi</code></td>
+<td>Declarar periodo, territorio y unidad</td>
+</tr>
+</tbody>
+</table>
+<h2>Metadatos y lectura accesible</h2>
+<p><code>titulo</code> y <code>fuente</code> son obligatorios. Completar <code>descripcion</code> con el mensaje
+verificable, <code>periodo</code>, <code>territorio</code>, <code>unidad</code>, <code>nota</code> y <code>actualizacion</code> cuando
+corresponda. La libreria no inventa el hallazgo. <code>ficticios=True</code> en Python o
+<code>ficticios=TRUE</code> en R agrega una advertencia visible de demostracion.</p>
+<p>El HTML coloca titulo y subtitulo fuera del lienzo, fuente y nota debajo, y una
+tabla equivalente accesible mediante <code>Ver datos en tabla</code>. La alternativa
+tabular complementa la descripcion. No se declara certificacion WCAG: los
+widgets y las interacciones requieren una evaluacion completa en el sitio
+anfitrion, incluyendo lector de pantalla y navegacion con teclado.</p>
+<h2>Uso de resultados</h2>
+<p>Python devuelve <code>VisualizacionINE</code>: <code>figura</code>, <code>datos</code>, <code>metadatos</code>, <code>tema</code> y
+<code>decimales</code>. R devuelve <code>visualizacion_ine</code>: <code>estatica</code>, <code>interactiva</code>, <code>datos</code>,
+<code>metadatos</code> y <code>decimales</code>. Es posible modificar la figura usando las APIs
+nativas, conservando metadatos y tabla. Si se cambia el dato representado,
+actualizar tambien la tabla equivalente; no basta con cambiar una etiqueta.</p>
+<pre><code class="language-python"># Anotar una referencia; guardar mantiene el objeto y tabla original.
+v.figura.add_hline(y=13000, line_color=&quot;#E31D1A&quot;, annotation_text=&quot;Referencia ficticia&quot;)
+v.guardar_html(&quot;salidas/grafico.html&quot;)
+v.exportar(&quot;salidas/grafico.svg&quot;)
+</code></pre>
+<pre><code class="language-r"># Modificar la version estatica e interactiva si ambas se van a publicar.
+v$estatica &lt;- v$estatica + ggplot2::geom_hline(yintercept = 13000, colour = &quot;#E31D1A&quot;)
+v$interactiva &lt;- plotly::layout(v$interactiva, shapes = list(list(type = &quot;line&quot;, xref = &quot;paper&quot;, x0 = 0, x1 = 1, y0 = 13000, y1 = 13000)))
+exportar_html(v, &quot;salidas/grafico.html&quot;)
+</code></pre>
+<h2>Integracion en HTML y Quarto</h2>
+<p>Python <code>v.html(incluir_js=True)</code> devuelve un fragmento con JS incrustado. Para
+varios graficos, incluirlo solo en el primero y usar <code>False</code> en los siguientes.
+Si el HTML ya carga Plotly, usar <code>False</code> en todos y verificar compatibilidad.
+El HTML de referencia carga Plotly 2.35.2; esta entrega genera figuras con una
+version mas reciente. Para reutilizar sus fragmentos, sustituir el script
+antiguo por el bundle probado con la entrega, o aislar el grafico con iframe.
+No cargar dos versiones en el mismo documento.</p>
+<p>En ambos lenguajes se puede guardar el HTML y usar un iframe con titulo y altura
+adecuados. Ejemplo de marcado para el sitio anfitrion:</p>
+<pre><code class="language-html">&lt;!-- El archivo debe desplegarse junto al sitio; altura cubre grafico y tabla. --&gt;
+&lt;iframe src=&quot;graficos/lineas.html&quot; title=&quot;Cantidad segun anio&quot;
+        style=&quot;width:100%;height:720px;border:0&quot; loading=&quot;lazy&quot;&gt;&lt;/iframe&gt;
+</code></pre>
+<p>El iframe no ajusta automaticamente su altura a una tabla expandida; permitir
+su desplazamiento o implementar comunicacion entre documentos si se necesita
+altura dinamica. La integracion nativa en Quarto evita ese problema: ejemplo
+<code>ejemplos/integracion_quarto.qmd</code>. En R, imprimir <code>v$interactiva</code> y agregar
+titulo, fuente y <code>tabla_html(v$datos)</code> como en el ejemplo.</p>
+<p>Las tablas de esta version son consultables mediante desplazamiento y HTML
+semantico; no implementan filtros, paginacion ni ordenamiento interactivo. CSV
+permite explorar los datos en otro programa. Una tabla grande debe publicarse
+como descarga y una seleccion editorial en la pagina.</p>
+<h2>Mapas</h2>
+<p>Se incluyen capas oficiales transformadas y simplificadas para referencia
+visual. Ver <code>CARTOGRAFIA.md</code> antes de cambiar cobertura o version. <code>region="13"</code>
+selecciona la Region Metropolitana en mapas provinciales y comunales; omitirlo
+representa el pais. <code>vista="completa"</code> conserva el encuadre de todas las islas
+presentes; <code>vista="continental"</code> cambia el encuadre y requiere declarar que no
+se ven todos los territorios. Los registros siguen en la tabla.</p>
+<p><code>limites=(5,35)</code> en Python y <code>limites=c(5,35)</code> en R fijan una escala comun a
+varios mapas. Valores fuera de limites generan error. No hay clasificacion
+Jenks, cuantiles ni inset automatico para islas en esta version. Para tasas con
+precision insuficiente o supresion, no sustituir el valor por cero: construir
+una capa editorial con el tratamiento de calidad correspondiente.</p>
+<p>Los mapas interactivos usan un plano de longitud/latitud con proporcion fija
+de visualizacion; son mapas tematicos de referencia, sin escala cartografica,
+sin herramienta de medicion ni teselas. Los mapas estaticos R usan <code>coord_sf</code>.
+Las escalas cromaticas y unidades coinciden; no se promete identidad pixel a
+pixel entre los motores de R y Python.</p>
+<h2>Revision antes de publicar</h2>
+<p>Confirmar correspondencia entre datos, relato, titulo, unidad, fuente, periodo,
+territorio y precision. Revisar denominadores, intervalos, valores ausentes y
+confidencialidad en la operacion. Comparar totales del grafico con el cuadro de
+origen. Revisar en movil, escritorio y blanco y negro. Los colores no aseguran
+por si solos distinguibilidad: usar etiquetas y tabla equivalente.</p>
+<p>Para imagenes ajustar dimensiones a la cantidad de categorias; los titulos y
+fuentes largos necesitan mas altura. Las pruebas de esta entrega no cubren
+todas las combinaciones posibles de textos y volumen de datos.</p></section><section id="seccion-5"><h1>Fuentes y bibliografia comprobable</h1>
+<p>Fecha de consulta web: 7 de octubre de 2026. Se citan fuentes primarias. Las
+paginas web no tienen paginacion; se indica el apartado pertinente, no un
+numero de pagina inventado.</p>
+<ol>
+<li>
+<p>Archivo entregado: <code>estadisticas_experimentales_empleo_publico(1).html</code>
+   (nombre original con tilde en publico). Referencia de estilo: ultima capa
+   <code>:root</code>, <code>body</code> y controles Plotly; sin paginacion. El contenido corresponde
+   al RUE y demografia de empresas. Identidad del archivo adjunto preservada;
+   no es una norma oficial de identidad visual validada por esta entrega.</p>
+</li>
+<li>
+<p>INE Chile / SDT, documento en construccion entregado: <em>Guia para la creacion
+   de Storytelling. En paginas de operaciones estadisticas</em>, octubre de 2026,
+   archivo <code>manual_visualizaciones_ine(1).docx</code>. Apartados 4, 7, 8 y 10-12.
+   Paginas segun su indice: 7, 11-29 y 31-32. La paginacion se refiere al indice
+   del documento recibido y no se verifico con una nueva renderizacion. No se
+   atribuye publicacion ni URL externa a un borrador aportado en el encargo.</p>
+</li>
+<li>
+<p>SUBDERE / Geoportal de Chile. <em>Division Politica Administrativa 2023</em>.
+   Publicacion declarada 29-09-2023. Apartados Resumen, Fecha del Recurso y
+   Acceso a recursos descargables; sin paginacion.
+   https://geoportal.cl/geoportal/catalog/36391/Divisi%C3%B3n%20Pol%C3%ADtica%20Administrativa%202023
+   Descarga vinculada por la ficha:
+   https://geoportal.cl/geoportal/catalog/download/912598ad-ac92-35f6-8045-098f214bd9c2</p>
+</li>
+<li>
+<p>IDE Chile. <em>Actualizacion de la cartografia de Division Politica
+   Administrativa en Chile</em>. 29-09-2023. Noticia que vincula la descarga oficial
+   y describe la colaboracion; sin paginacion.
+   https://www.ide.cl/noticias/2023-09-actualizacion-de-la-cartografia-de-division-politica-administrativa-en/</p>
+</li>
+<li>
+<p>SUBDERE. <em>Descripcion de Informacion: Division Politico Administrativa 2023</em>.
+   <code>DOCUMENTACION/DESCRIPCION_DPA2023_v1.docx</code>, contenido en el ZIP oficial.
+   Apartados Resumen, Consideraciones y Sistema de Referencia. No se verifico
+   su paginacion renderizada. Contiene la referencia a Resolucion N. 87 de 2019,
+   distinta de la ficha web; ver CARTOGRAFIA.md. Se conserva una copia del
+   documento fuente en <code>cartografia/documentacion_original/</code>.</p>
+</li>
+<li>
+<p>INE Chile. <em>Geodatos Abiertos</em>. Informativo APC 2023 y apartado Documentos
+   y descargas / Cartografia; sin paginacion. La pagina tiene noticias
+   posteriores: no se atribuye una fecha unica de publicacion a todo su
+   contenido.
+   https://www.ine.gob.cl/herramientas/portal-de-mapas/geodatos-abiertos</p>
+</li>
+<li>
+<p>Biblioteca del Congreso Nacional de Chile, SIIT. <em>Mapas vectoriales</em>.
+   Apartados Fuente y estado de los datos y Condiciones de uso; sin paginacion
+   ni fecha unica de publicacion comprobada.
+   https://www.bcn.cl/siit/mapas_vectoriales/index_html</p>
+</li>
+<li>
+<p>Plotly. <em>Static Image Export in Python</em>. Documentacion tecnica, apartados
+   Install Dependencies, Chrome y Write Image to a File; sin paginacion ni
+   fecha de publicacion unica. Respalda el requisito de Kaleido/Chrome y los
+   formatos de imagen.
+   https://plotly.com/python/static-image-export/</p>
+</li>
+<li>
+<p>Plotly. <em>plotly.graph_objects.Layout</em>. Referencia tecnica, propiedad
+   separators y ejes; sin paginacion.
+   https://plotly.com/python-api-reference/generated/plotly.graph_objects.Layout.html</p>
+</li>
+<li>
+<p>Plotly. <em>Getting Started with Plotly in R</em>. Apartados Installation y
+    Rendering Charts; sin paginacion. La pagina anuncia retiro de la
+    documentacion R; no se infiere de ello el retiro del paquete R.
+    https://plotly.com/r/getting-started/</p>
+</li>
+<li>
+<p>Proyecto sf. <em>Read simple features or layers from file or database</em>.
+    Referencia st_read, apartados Arguments y Details; sin paginacion.
+    https://r-spatial.github.io/sf/reference/st_read.html</p>
+</li>
+</ol>
+<p>Las especificaciones y limites propios del codigo se documentan a partir de
+su implementacion y las pruebas, no se atribuyen a estas fuentes externas.</p></section><section id="seccion-6"><h1>Verificacion de la entrega 0.1.0</h1>
+<p>Comprobaciones realizadas el 7 de octubre de 2026. Los indicadores de todos
+los ejemplos son ficticios; los limites territoriales proceden de la DPA 2023.</p>
+<h2>Comprobaciones ejecutadas</h2>
+<ul>
+<li>Python: 14 pruebas aprobadas, incluidas exportaciones PNG, SVG y PDF con
+  Matplotlib, validacion de intervalos, porcentajes, duplicados y uniones de mapas.</li>
+<li>R: 14 aserciones testthat aprobadas; comprobaciones adicionales de porcentajes
+  y conservacion de unidades sin indicador en un filtro regional.</li>
+<li>Construccion y <code>R CMD check --no-manual --no-build-vignettes</code>: estado OK.
+  La ayuda <code>.Rd</code> esta incluida; este comando no genera el manual PDF de R.</li>
+<li>Catalogos completos: 23 ejemplos por lenguaje, cada uno con HTML, CSV,
+  PNG, SVG y PDF. <code>scripts/verificar_entrega.py</code> revisa firmas de archivos,
+  registros, valores equivalentes entre lenguajes y estructura de la galeria.</li>
+<li>Inspeccion visual de ejemplos representativos: lineas, torta, dona, piramides,
+  paneles, tabla y mapas regionales de provincias y comunas.</li>
+<li>Cartografia: 16 regiones, 56 provincias y 345 comunas; geometria valida tras
+  simplificacion. Auditoria de codigos, areas y huellas SHA-256 en
+  <code>cartografia/procedencia.json</code>. La capa no incluye la comuna Antartica.</li>
+</ul>
+<p>Los registros de ejecucion y paquetes construidos estan en <code>distribucion/</code>.
+El informe de artefactos corresponde al catalogo completo generado antes de
+preparar el ZIP. Se incluyen los 230 archivos de ejemplos en la entrega.</p>
+<h2>Comprobaciones pendientes</h2>
+<p>El navegador Chrome no pudo iniciarse por una restriccion de sockets del
+entorno de ejecucion. Por ello no se afirma haber verificado el renderizado
+HTML, comportamiento movil, tooltips, teclado ni lector de pantalla. Se incluye
+<code>scripts/verificar_navegador.py</code> para revisar la galeria en un equipo habilitado.
+Las tablas HTML y la ausencia de scripts externos si se revisaron estructuralmente.</p>
+<p>El motor opcional Plotly/Kaleido para imagenes Python tampoco pudo ejecutarse
+en este entorno por el mismo bloqueo. El motor predeterminado Matplotlib fue
+verificado para todos los ejemplos; R exporta con ggplot2 y no necesita Chrome.</p>
+<p>La correspondencia funcional no implica igualdad de pixeles entre los motores.
+El HTML no hereda automaticamente las fuentes instaladas en el equipo del
+analista: desplegar Lato junto al sitio conforme a INSTALACION.</p>
+<h2>Repetir las comprobaciones</h2>
+<pre><code class="language-bash"># Desde la raiz, con los paquetes y extras de desarrollo instalados.
+python -m pytest python/tests
+Rscript scripts/verificar_R.R
+python ejemplos/generar_ejemplos.py --estaticos
+Rscript ejemplos/generar_ejemplos.R
+python scripts/verificar_entrega.py
+python scripts/verificar_navegador.py
+</code></pre>
+<p>El repositorio del código fuente es privado. La licencia institucional identifica al INE como titular y limita el uso del software a funcionarios del INE en el desempeño de funciones institucionales.</p></section><section id="seccion-7"><h1>Reglas visuales y correspondencia con el manual</h1>
+<h2>Jerarquia de referencias</h2>
+<p>La instruccion del encargo fija que colores, tipografia y formato numerico del
+HTML prevalecen. El manual aporta criterios de eleccion, estructura editorial
+y lectura estadistica. No se modifica ninguno de los archivos adjuntos.</p>
+<p>El nombre del HTML menciona empleo publico; su titulo y contenido describen
+estadisticas experimentales del RUE y demografia de empresas. Se usa como
+referencia de estilo; no se trasladan sus indicadores a otras operaciones.</p>
+<p>El HTML contiene una paleta inicial y una capa CSS posterior que la reemplaza.
+Se extrajeron las variables efectivas de esa ultima capa. Las figuras embebidas
+tambien contienen colores y familias anteriores; se homogeneizan al estilo
+efectivo, sin reproducir esas inconsistencias internas.</p>
+<table>
+<thead>
+<tr>
+<th>Elemento</th>
+<th>Valor adoptado</th>
+<th>Procedencia</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Tipografia</td>
+<td>Lato; alternativas Arial/sans-serif</td>
+<td>CSS posterior, body y controles</td>
+</tr>
+<tr>
+<td>Azul principal</td>
+<td><code>#092C74</code></td>
+<td><code>--ine-azul</code> efectivo</td>
+</tr>
+<tr>
+<td>Azul medio/claro</td>
+<td><code>#174A8B</code> / <code>#2C67A3</code></td>
+<td>Variables efectivas</td>
+</tr>
+<tr>
+<td>Rojo</td>
+<td><code>#E31D1A</code></td>
+<td><code>--ine-rojo</code> efectivo</td>
+</tr>
+<tr>
+<td>Texto</td>
+<td><code>#2B3442</code></td>
+<td><code>--texto</code></td>
+</tr>
+<tr>
+<td>Gris secundario</td>
+<td><code>#667085</code></td>
+<td><code>--gris-500</code></td>
+</tr>
+<tr>
+<td>Cuadricula/borde</td>
+<td><code>#E3E7ED</code></td>
+<td><code>--gris-200</code></td>
+</tr>
+<tr>
+<td>Fondo de figura</td>
+<td>Blanco</td>
+<td>HTML y manual</td>
+</tr>
+<tr>
+<td>Fondo de galeria</td>
+<td><code>#F5F6F8</code></td>
+<td><code>--fondo</code> efectivo</td>
+</tr>
+<tr>
+<td>Radio de componente</td>
+<td>6 px</td>
+<td><code>--radio</code> efectivo</td>
+</tr>
+<tr>
+<td>Miles y decimales</td>
+<td><code>1.234.567,89</code></td>
+<td>Instruccion expresa del encargo</td>
+</tr>
+</tbody>
+</table>
+<p>Paleta de series ampliada con colores que aparecen en el HTML: verde
+<code>#2E7D32</code>, violeta <code>#6A1B9A</code> y naranja <code>#EF6C00</code>. No se afirma que sean una
+paleta institucional oficial validada. Una serie usa un solo color; categorias
+de una misma variable no reciben colores arbitrarios en barras simples.</p>
+<h2>Aplicacion del manual</h2>
+<p>Las paginas siguientes corresponden al indice contenido en el DOCX recibido;
+la paginacion puede cambiar al editarlo o renderizarlo. Se identifica tambien
+el apartado para conservar trazabilidad. No se atribuyen estas reglas a una
+version publicada oficialmente.</p>
+<table>
+<thead>
+<tr>
+<th>Apartado del manual</th>
+<th>Pagina segun indice</th>
+<th>Aplicacion</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>4. Principios</td>
+<td>7</td>
+<td>Metadatos y alternativa tabular</td>
+</tr>
+<tr>
+<td>7. Seleccion de grafico</td>
+<td>11</td>
+<td>Catalogo del manual del analista</td>
+</tr>
+<tr>
+<td>8.2. Titulo del grafico</td>
+<td>14</td>
+<td>Titulo fuera del lienzo HTML; envoltura en imagen</td>
+</tr>
+<tr>
+<td>8.3. Cuadricula</td>
+<td>15</td>
+<td>Cuadricula horizontal tenue; se adapta a orientacion</td>
+</tr>
+<tr>
+<td>8.4. Escala</td>
+<td>15</td>
+<td>Barras desde cero; excepciones explicitas en distribuciones</td>
+</tr>
+<tr>
+<td>8.6. Fuente</td>
+<td>16</td>
+<td>Campo fuente obligatorio</td>
+</tr>
+<tr>
+<td>8.7. Leyenda</td>
+<td>17</td>
+<td>Oculta en graficos de una serie cuando corresponde</td>
+</tr>
+<tr>
+<td>8.8. Etiquetas</td>
+<td>17</td>
+<td>Opcionales en lineas; valores consultables y tabla</td>
+</tr>
+<tr>
+<td>8.9. Intervalos</td>
+<td>17</td>
+<td>Lineas, barras no apiladas y puntos reciben limites</td>
+</tr>
+<tr>
+<td>8.10-8.11. Color</td>
+<td>17-19</td>
+<td>Fondo blanco, paleta comun y etiquetas</td>
+</tr>
+<tr>
+<td>8.12. Tipos y ejemplos</td>
+<td>20</td>
+<td>Lineas temporales y puntos de tasas</td>
+</tr>
+<tr>
+<td>8.14. Torta y piramide</td>
+<td>26</td>
+<td>Ambas piramides; torta disponible con uso restringido</td>
+</tr>
+<tr>
+<td>8.15. Mapas</td>
+<td>29</td>
+<td>Escala secuencial por magnitud, codigos y tabla</td>
+</tr>
+<tr>
+<td>10. Interaccion</td>
+<td>31</td>
+<td>HTML responsive y alternativas</td>
+</tr>
+<tr>
+<td>11-12. Control editorial</td>
+<td>32</td>
+<td>Revision de fuente, cobertura y valores</td>
+</tr>
+</tbody>
+</table>
+<h2>Decisiones y limites</h2>
+<p>Se ofrecen tortas y donas porque el encargo las solicita; el manual aconseja
+evitarlas salvo composiciones muy simples. No se fuerzan como salida por
+defecto. La piramide de composicion usa barras centradas de alto constante;
+no un embudo con areas ambiguas. La piramide demografica compara dos grupos.</p>
+<p>No se ofrecen ejes Y dobles como patron generico. Para medidas de distinta
+unidad deben construirse dos figuras o paneles separados con sus metadatos.
+Los paneles incluidos estan disenados para una misma medida y escala.</p>
+<p>No se calculan intervalos a partir de datos crudos. No se garantiza que los
+colores funcionen solos en blanco y negro o ante todas las deficiencias de
+vision. La tabla equivalente y las etiquetas son parte de la alternativa.
+No se agregan estimaciones nacionales por suma de tasas regionales.</p></section><section id="seccion-8"><h1>Mantenimiento y futura distribucion</h1>
+<p>El código fuente y los paquetes se mantienen en un repositorio privado del INE. Su uso está limitado a funcionarios del INE en el desempeño de funciones institucionales, conforme a la licencia incluida. El sitio público contiene materiales de consulta y ejemplos ficticios; no concede autorización para reutilizar el software ni sus plantillas.</p>
+<h2>Cambios de API</h2>
+<p>Mantener equivalencia de nombres y contratos entre R y Python. Agregar una
+funcion publica a exportaciones, ayuda, API.md, ejemplos y pruebas. Un cambio
+de denominador, tratamiento de faltantes o llaves territoriales es un cambio
+de comportamiento y debe registrarse en CHANGELOG.md.</p>
+<p>Comentarios explican cada bloque de validacion, transformacion, trazado y
+exportacion. Evitar automatismos que agreguen, imputen o cambien cobertura sin
+que el analista lo indique. No incluir bases de personas ni credenciales.</p>
+<h2>Verificacion y empaquetado</h2>
+<pre><code class="language-bash"># Python: pruebas y distribuciones locales, sin publicacion.
+python -m pytest python/tests -q
+python -m build python --outdir distribucion
+</code></pre>
+<pre><code class="language-r"># R: regenerar ayuda si se cambia roxygen; ejecutar pruebas.
+roxygen2::roxygenise(&quot;R/visualizacionesineCL&quot;)
+testthat::test_local(&quot;R/visualizacionesineCL&quot;)
+</code></pre>
+<pre><code class="language-bash"># Desde la raiz: construir y revisar el paquete local.
+R CMD build R/visualizacionesineCL
+R CMD check --no-manual visualizacionesineCL_0.1.0.tar.gz
+</code></pre>
+<p>Revisar tambien la galeria en movil/escritorio y los PDF. No convertir una
+prueba fallida en una excepcion silenciosa. Documentar pruebas no ejecutadas.</p>
+<h2>Distribución separada de materiales</h2><p>Los ejemplos y la documentación destinados al público se publican como materiales estáticos separados del repositorio privado. Antes de publicar, revisar que no incluyan código fuente, datos personales, rutas locales, credenciales o recursos con restricciones de redistribución.</p></section><section id="seccion-9"><h1>Cambios</h1>
+<h2>0.1.0 - 2026-10-07</h2>
+<p>Paquetes iniciales R y Python con lineas, barras, barras apiladas, histogramas,
+tortas, donas, piramides demograficas y de composicion, dispersion, cajas,
+paneles, areas, mapas de calor, puntos con intervalos, tablas y KPI.</p>
+<p>Mapas por regiones, provincias y comunas, nacionales o filtrados por region.
+Capas DPA 2023 simplificadas con auditoria y funciones de descarga/carga.
+Metadatos editoriales, formato chileno, tablas equivalentes y exportacion.
+Documentacion y ejemplos ficticios reproducibles para ambos lenguajes.</p></section></main></body></html>
