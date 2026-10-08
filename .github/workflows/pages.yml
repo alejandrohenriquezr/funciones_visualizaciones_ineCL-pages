@@ -1,0 +1,105 @@
+name: Publicar sitio estático
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Obtener publicación
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar herramientas de publicación
+        run: python -m pip install nbconvert plotly
+
+      - name: Preparar materiales estáticos
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import json
+          import shutil
+
+          sitio = Path("_site")
+          sitio.mkdir(exist_ok=True)
+          shutil.copy2("manual.html", sitio / "manual.html")
+
+          cuaderno = json.loads(Path("ejemplos_python.ipynb").read_text(encoding="utf-8"))
+          for celda in cuaderno.get("cells", []):
+              if celda.get("cell_type") == "code":
+                  celda["outputs"] = [
+                      salida for salida in celda.get("outputs", [])
+                      if salida.get("output_type") != "stream"
+                  ]
+          Path("_site/ejemplos_python.ipynb").write_text(
+              json.dumps(cuaderno, ensure_ascii=False, indent=1) + "\n",
+              encoding="utf-8",
+          )
+          PY
+
+          cat > _site/index.html <<'HTML'
+          <!doctype html>
+          <html lang="es">
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <title>Visualizaciones INE Chile · ejemplos</title>
+            <link rel="stylesheet" href="estilos.css">
+          </head>
+          <body>
+            <main>
+              <h1>Visualizaciones INE Chile</h1>
+              <p>Manual y ejemplos con indicadores ficticios.</p>
+              <ul>
+                <li><a href="cuaderno.html">Cuaderno Python en HTML</a></li>
+                <li><a href="ejemplos_python.ipynb">Descargar el cuaderno .ipynb</a></li>
+                <li><a href="manual.html">Manual de uso y referencia</a></li>
+              </ul>
+              <p class="aviso">Publicación de consulta. No contiene los paquetes fuente
+              ni autoriza la reutilización de sus plantillas o recursos de diseño.</p>
+            </main>
+          </body>
+          </html>
+          HTML
+
+          cat > _site/estilos.css <<'CSS'
+          body { margin: 0; color: #2b3442; background: #fff;
+                 font-family: Arial, sans-serif; line-height: 1.6; }
+          main { width: min(760px, calc(100% - 40px)); margin: 64px auto; }
+          h1, a { color: #092c74; }
+          li { margin: 12px 0; }
+          .aviso { margin-top: 36px; padding-top: 16px; border-top: 1px solid #ddd; }
+          CSS
+
+      - name: Convertir cuaderno a HTML
+        run: python -m nbconvert --to html --output-dir _site --output cuaderno.html _site/ejemplos_python.ipynb
+
+      - name: Cargar sitio
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+    steps:
+      - name: Publicar en GitHub Pages
+        uses: actions/deploy-pages@v4
